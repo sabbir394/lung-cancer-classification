@@ -167,6 +167,64 @@ for folder_name in os.listdir(test_folder):
             X.append(img)
             y.append(folder_name[0])
 
+#####  merging in one folder  ######
+from tqdm import tqdm
+import os
+import cv2
+import numpy as np
+
+train_folder = train_processed_dir
+valid_folder = valid_processed_dir
+test_folder = test_processed_dir
+
+X = []
+y = []
+
+class_labels = {'cancer': ['adenocarcinoma_left.lower.lobe_T2_N0_M0_Ib', 'large.cell.carcinoma_left.hilum_T2_N2_M0_IIIa', 'squamous.cell.carcinoma_left.hilum_T1_N2_M0_IIIa'],
+                'non-cancer': ['normal']}
+
+for class_label, subfolders in class_labels.items():
+    for subfolder in subfolders:
+        folder_path = os.path.join(train_folder, subfolder)
+        if os.path.isdir(folder_path):
+            for filename in tqdm(os.listdir(folder_path)):
+                img_path = os.path.join(folder_path, filename)
+                img = cv2.imread(img_path)
+                img = cv2.resize(img, (224, 224))
+                X.append(img)
+                y.append(class_label)
+
+class_labels2 = {'cancer': ['adenocarcinoma_left.lower.lobe_T2_N0_M0_Ib', 'large.cell.carcinoma_left.hilum_T2_N2_M0_IIIa', 'squamous.cell.carcinoma_left.hilum_T1_N2_M0_IIIa'],
+                'non-cancer': ['normal']}
+for class_label, subfolders in class_labels2.items():
+    for subfolder in subfolders:
+        folder_path = os.path.join(valid_folder, subfolder)
+        if os.path.isdir(folder_path):
+            for filename in tqdm(os.listdir(folder_path)):
+                img_path = os.path.join(folder_path, filename)
+                img = cv2.imread(img_path)
+                img = cv2.resize(img, (224, 224))
+                X.append(img)
+                y.append(class_label)
+
+
+class_labels3 = {'cancer': ['adenocarcinoma', 'large.cell.carcinoma', 'squamous.cell.carcinoma'],
+                'non-cancer': ['normal']}
+for class_label, subfolders in class_labels3.items():
+    for subfolder in subfolders:
+        folder_path = os.path.join(test_folder, subfolder)
+        if os.path.isdir(folder_path):
+            for filename in tqdm(os.listdir(folder_path)):
+                img_path = os.path.join(folder_path, filename)
+                img = cv2.imread(img_path)
+                img = cv2.resize(img, (224, 224))
+                X.append(img)
+                y.append(class_label)
+
+y_binary = np.array([0 if label == 'non-cancer' else 1 for label in y])
+
+#########
+
 ##### labelling and train-test splitting ######
 
 from sklearn.model_selection import train_test_split
@@ -187,6 +245,8 @@ print("X_train Shape: ", X_train.shape)
 print("X_test Shape: ", X_test.shape)
 print("y_train Shape: ", y_train.shape)
 print("y_test Shape: ", y_test.shape)
+
+
 
 ##### cnn-model #####
 model = tf.keras.Sequential()
@@ -315,6 +375,36 @@ plt.ylabel('True Labels')
 plt.title('Confusion Matrix')
 
 plt.show()
+
+''roc curve for gnb''
+n_classes = len(np.unique(y_test))
+y_test_bin = label_binarize(y_test, classes=np.unique(y_test))
+
+fpr = dict()
+tpr = dict()
+roc_auc_scores = dict()  
+for i in range(n_classes):
+    fpr[i], tpr[i], _ = roc_curve(y_test_bin[:, i], y_pred_prob[:, i])
+    roc_auc_scores[i] = roc_auc_score(y_test_bin[:, i], y_pred_prob[:, i])  
+
+fpr["micro"], tpr["micro"], _ = roc_curve(y_test_bin.ravel(), y_pred_prob.ravel())
+roc_auc_scores["micro"] = roc_auc_score(y_test_bin, y_pred_prob, average='micro')  
+
+plt.figure(figsize=(8, 6))
+for i in range(n_classes):
+    plt.plot(fpr[i], tpr[i], label='ROC curve (area = {:.2f}) for class {}'.format(roc_auc_scores[i], i))
+
+plt.plot(fpr["micro"], tpr["micro"], label='Micro-average ROC curve (area = {:.2f})'.format(roc_auc_scores["micro"]), linestyle=':', linewidth=4)
+
+plt.plot([0, 1], [0, 1], 'k--') 
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic (ROC) Curve')
+plt.legend(loc='lower right')
+plt.show()
+
 
 ''''GBM'''
 
