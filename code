@@ -645,6 +645,122 @@ plt.show()
 *********************************************************************************
 *************************************binary *************************************
 *********************************************************************************
+##### connect with kaggle & download ######
+from google.colab import files
+uploaded = files.upload()
+for fn in uploaded.keys():
+  print('User uploaded file "{name}" with length {length} bytes'.format(
+      name=fn, length=len(uploaded[fn])))
+
+!mkdir -p ~/.kaggle/ && mv kaggle.json ~/.kaggle/ && chmod 600 ~/.kaggle/kaggle.json
+
+!kaggle datasets download  --force mohamedhanyyy/chest-ctscan-images
+
+##### import  necessary library ######
+
+import numpy as np
+import pandas as pd
+import cv2
+import matplotlib.pyplot as plt
+import seaborn as sns
+import os
+from skimage import io
+from skimage.color import rgb2gray
+import plotly.express as px
+import random
+from sklearn.utils import shuffle
+import shutil
+from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import OneHotEncoder
+import tensorflow as tf
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras import layers
+from tensorflow.keras.models import Sequential
+from keras.layers import Dense, Flatten, Dropout, BatchNormalization, Conv2D, MaxPooling2D
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.applications.resnet import preprocess_input
+from tensorflow.keras.applications import ResNet50
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras import optimizers
+from keras.applications import resnet
+
+##### folder path ######
+
+train_path = "/content/Data/train"
+valid_path = "/content/Data/valid"
+test_path = "/content/Data/test"
+
+########### unzip ##########
+
+from zipfile import ZipFile
+file_name = "/content/chest-ctscan-images.zip"
+with ZipFile(file_name,'r') as zip:
+  zip.extractall()
+  print('Done')
+
+############################# pre-processed applying clahe #####################
+
+import cv2
+import os
+
+def apply_clahe(image):
+    clip_limit = 2.5
+    tile_size = (8, 8)
+    clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=tile_size)
+    return clahe.apply(image)
+
+train_dir = "/content/Data/train"
+test_dir = "/content/Data/test"
+valid_dir = "/content/Data/valid"
+
+train_processed_dir = "/content/Data/train_processed"
+test_processed_dir = "/content/Data/test_processed"
+valid_processed_dir = "/content/Data/valid_processed"
+
+os.makedirs(train_processed_dir, exist_ok=True)
+os.makedirs(test_processed_dir, exist_ok=True)
+os.makedirs(valid_processed_dir, exist_ok=True)
+
+for subdir in os.listdir(train_dir):
+    subdir_path = os.path.join(train_dir, subdir)
+    if os.path.isdir(subdir_path):
+        print(f'Applying CLAHE to images in {subdir_path}...')
+        for filename in os.listdir(subdir_path):
+            file_path = os.path.join(subdir_path, filename)
+            if filename.endswith('.png'):
+                image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+                clahe_image = apply_clahe(image)
+                processed_file_path = os.path.join(train_processed_dir, subdir, filename)
+                os.makedirs(os.path.dirname(processed_file_path), exist_ok=True)
+                cv2.imwrite(processed_file_path, clahe_image)
+
+for subdir in os.listdir(test_dir):
+    subdir_path = os.path.join(test_dir, subdir)
+    if os.path.isdir(subdir_path):
+        print(f'Applying CLAHE to images in {subdir_path}...')
+        for filename in os.listdir(subdir_path):
+            file_path = os.path.join(subdir_path, filename)
+            if filename.endswith('.png'):
+                image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+                clahe_image = apply_clahe(image)
+                processed_file_path = os.path.join(test_processed_dir, subdir, filename)
+                os.makedirs(os.path.dirname(processed_file_path), exist_ok=True)
+                cv2.imwrite(processed_file_path, clahe_image)
+
+for subdir in os.listdir(valid_dir):
+    subdir_path = os.path.join(valid_dir, subdir)
+    if os.path.isdir(subdir_path):
+        print(f'Applying CLAHE to images in {subdir_path}...')
+        for filename in os.listdir(subdir_path):
+            file_path = os.path.join(subdir_path, filename)
+            if filename.endswith('.png'):
+                image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+                clahe_image = apply_clahe(image)
+                processed_file_path = os.path.join(valid_processed_dir, subdir, filename)
+                os.makedirs(os.path.dirname(processed_file_path), exist_ok=True)
+                cv2.imwrite(processed_file_path, clahe_image)
+ 
+##################### marching in one folder #################
 
 from tqdm import tqdm
 import os
