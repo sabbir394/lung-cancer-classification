@@ -43,7 +43,7 @@ train_path = "/content/Data/train"
 valid_path = "/content/Data/valid"
 test_path = "/content/Data/test"
 
-###########
+########### unzip ##########
 
 from zipfile import ZipFile
 file_name = "/content/chest-ctscan-images.zip"
@@ -51,7 +51,7 @@ with ZipFile(file_name,'r') as zip:
   zip.extractall()
   print('Done')
 
-##### pre-processed applying clahe ######
+############################# pre-processed applying clahe #####################
 
 import cv2
 import os
@@ -222,7 +222,7 @@ model.add(tf.keras.layers.Dense(1024))
 model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.Activation("relu"))
 model.add(tf.keras.layers.Dropout(0.5))
-model.add(tf.keras.layers.Dense(512,name ='feature_denseee'))
+model.add(tf.keras.layers.Dense(512,name ='feature_denseee'))   ### 512 prominent features extraction from this layer ###
 model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.Activation("relu"))
 model.add(tf.keras.layers.Dropout(0.5))
@@ -601,7 +601,7 @@ print("Precision:", precision)
 print("Recall:", recall)
 print("F1-score:", f1)
 
-################################################## roc for voting classifier #####
+################################################## roc for voting classifier ######################
 
 from sklearn.metrics import classification_report, roc_auc_score, roc_curve, auc
 import matplotlib.pyplot as plt
@@ -642,9 +642,9 @@ plt.legend(loc='lower right')
 plt.show()
 
 
-
-*************************************binary ***********************
-
+*********************************************************************************
+*************************************binary *************************************
+*********************************************************************************
 
 from tqdm import tqdm
 import os
@@ -755,12 +755,12 @@ model.add(tf.keras.layers.Dense(1024))
 model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.Activation("relu"))
 model.add(tf.keras.layers.Dropout(0.5))
-model.add(tf.keras.layers.Dense(512))
+model.add(tf.keras.layers.Dense(512,name ='feature_denseee'))   ### 512 prominent features extraction from this layer ###
 model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.Activation("relu"))
 model.add(tf.keras.layers.Dropout(0.5))
 #Dense Layer 2
-model.add(tf.keras.layers.Dense(100,name ='feature_denseee')) #100 Prominant Features are Extracted From This Layer
+model.add(tf.keras.layers.Dense(100)) 
 model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.Activation("relu"))
 model.add(tf.keras.layers.Dropout(0.5))
@@ -793,7 +793,7 @@ plt.show()
 
 model.save('/content/Data/model/lcancer.h5')
 model = tf.keras.models.load_model('/content/Data/model/lcancer.h5')
-intermediate_layer_model = tf.keras.Model(inputs=model.input, outputs=model.get_layer('dense_2').output)
+intermediate_layer_model = tf.keras.Model(inputs=model.input, outputs=model.get_layer('feature_denseee').output)
 intermediate_layer_model.summary()
 X = np.array(X)
 feature_engg_data = intermediate_layer_model.predict(X)
@@ -806,11 +806,12 @@ x = StandardScaler().fit_transform(x)
 X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.20, stratify= y, random_state =0)
 from sklearn.decomposition import TruncatedSVD
 
+######################## feature reduced to 100 by svd ######################
 svd = TruncatedSVD(n_components=100)
 training_feature_svd_2D = svd.fit_transform(X_train)
 test_feature_svd_2D = svd.transform(X_test)
 
-****************gnb 
+############################################## gnb ####################
 from sklearn.model_selection import cross_val_score, KFold
 from sklearn import svm
 from sklearn import metrics
@@ -837,7 +838,7 @@ plt.ylabel('True Labels')
 plt.title('Confusion Matrix')
 plt.show()
 
-************** svm
+####################################### svm ###############################
 
 from sklearn.svm import SVC
 
@@ -854,7 +855,7 @@ y_pred_prob_svm = svm_model.predict_proba(test_feature_svd_2D)
 svm_auc = roc_auc_score(y_test, y_pred_prob_svm[:, 1])
 print("SVM AUC:", svm_auc)
 
-
+#################### roc curve and cm for svm ###################
 from sklearn.svm import SVC
 from sklearn.metrics import roc_curve, auc, confusion_matrix
 import matplotlib.pyplot as plt
@@ -894,7 +895,7 @@ plt.title('Confusion Matrix (SVM)')
 plt.show()
 
 
-************* roc and cm for gnb
+############################################ roc and cm for gnb #########################
 
 from sklearn.naive_bayes import GaussianNB
 
@@ -928,15 +929,13 @@ plt.ylabel('True Labels')
 plt.title('Confusion Matrix (GNB)')
 plt.show()
 
-*********** roc and cm for gbm 
+############################################### roc and cm for gbm ############################
 
 from sklearn.ensemble import GradientBoostingClassifier
 
 gbm_model = GradientBoostingClassifier()
 gbm_model.fit(training_feature_svd_2D, y_train)
-
 y_pred_prob_gbm = gbm_model.predict_proba(test_feature_svd_2D)[:, 1]
-
 fpr_gbm, tpr_gbm, _ = roc_curve(y_test_binary, y_pred_prob_gbm)
 roc_auc_gbm = auc(fpr_gbm, tpr_gbm)
 
@@ -950,19 +949,16 @@ plt.ylabel('True Positive Rate')
 plt.title('Receiver Operating Characteristic (ROC) Curve (GBM)')
 plt.legend(loc='lower right')
 plt.show()
-
 y_pred_gbm = gbm_model.predict(test_feature_svd_2D)
 confusion_gbm = confusion_matrix(y_test, y_pred_gbm)
-
 plt.figure(figsize=(8, 6))
 sns.heatmap(confusion_gbm, annot=True, cmap='Blues', fmt='d')
-
 plt.xlabel('Predicted Labels')
 plt.ylabel('True Labels')
 plt.title('Confusion Matrix (GBM)')
 plt.show()
 
-*************** roc and cm for knn 
+################################################# roc and cm for knn #########################
 
 from sklearn.neighbors import KNeighborsClassifier
 knn_model = KNeighborsClassifier()
@@ -995,7 +991,7 @@ plt.ylabel('True Labels')
 plt.title('Confusion Matrix (KNN)')
 plt.show()
 
-************** roc and cm for rf 
+############################################# roc and cm for rf ##############################
 
 from sklearn.ensemble import RandomForestClassifier
 
@@ -1027,7 +1023,7 @@ plt.ylabel('True Labels')
 plt.title('Confusion Matrix (RF)')
 plt.show()
 
-************ voting classifier roc and cm
+################################################## voting classifier roc and cm #############################
 
 from sklearn.ensemble import VotingClassifier
 from sklearn.metrics import roc_curve, auc, confusion_matrix
@@ -1075,7 +1071,9 @@ plt.ylabel('True Labels')
 plt.title('Confusion Matrix (Voting)')
 plt.show()
 
-**********voting classifier classification result
+********** only result without roc curve and confusion matrix ************
+
+************************** voting classifier classification *************************
 
 from sklearn.ensemble import VotingClassifier
 from sklearn.metrics import accuracy_score, classification_report, roc_auc_score
@@ -1109,7 +1107,7 @@ y_pred_prob_voting = voting_classifier.predict_proba(test_feature_svd_2D)
 voting_auc = roc_auc_score(y_test, y_pred_prob_voting[:, 1])
 print("Voting Classifier AUC:", voting_auc)
 
-***********gbm
+****************************** gbm ***************************
 
 from sklearn.ensemble import GradientBoostingClassifier
 gbm_model = GradientBoostingClassifier()
@@ -1123,7 +1121,7 @@ y_pred_prob_gbm = gbm_model.predict_proba(test_feature_svd_2D)
 gbm_auc = roc_auc_score(y_test, y_pred_prob_gbm[:, 1])
 print("GBM AUC:", gbm_auc)
 
-*************knn
+*********************************** knn ************************
 
 from sklearn.neighbors import KNeighborsClassifier
 knn_model = KNeighborsClassifier()
@@ -1138,7 +1136,7 @@ knn_auc = roc_auc_score(y_test, y_pred_prob_knn[:, 1])
 print("KNN AUC:", knn_auc)
 
 
-************** rf
+**************************************** rf ********************************
 from sklearn.ensemble import RandomForestClassifier
 rf_model = RandomForestClassifier()
 rf_model.fit(training_feature_svd_2D, y_train)
