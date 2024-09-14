@@ -268,8 +268,9 @@ import cv2
 import matplotlib.pyplot as plt
 
 def generate_gradcam_heatmap(model, img_array, class_index):
-    last_conv_layer = model.get_layer('conv2d_3')  # Adjust last conv layer's name
+    last_conv_layer = model.get_layer('conv2d_4')  # Adjust to your last conv layer's name
     
+    # Create a model that outputs the last conv layer and the model's output
     grad_model = tf.keras.models.Model(
         inputs=[model.input],
         outputs=[last_conv_layer.output, model.output]
@@ -283,14 +284,17 @@ def generate_gradcam_heatmap(model, img_array, class_index):
     
     pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
     
+    # Get the values of the conv layer outputs and gradients
     conv_outputs_value = conv_outputs[0].numpy()
     pooled_grads_value = pooled_grads.numpy()
     
+    # Apply the pooled gradients to the conv layer outputs
     for i in range(pooled_grads_value.shape[-1]):
         conv_outputs_value[:, :, i] *= pooled_grads_value[i]
     
     heatmap = np.mean(conv_outputs_value, axis=-1)
     
+    # Normalize the heatmap
     heatmap = np.maximum(heatmap, 0)
     heatmap /= np.max(heatmap)
     
@@ -303,18 +307,18 @@ def overlay_heatmap(heatmap, img, alpha=0.4):
     superimposed_img = heatmap * alpha + img
     return np.uint8(superimposed_img)
 
-# Select 4 sample images and their respective target classes
 sample_images = X_test[:4]  # Assuming X_test has at least 4 images
-sample_images_exp = np.expand_dims(sample_images, axis=0)  
+sample_images_exp = np.expand_dims(sample_images, axis=0)  # Expand to match model input shape
 
 # Display the original images and Grad-CAM heatmaps for 4 images in a close vertical layout
 plt.figure(figsize=(6, 16))
 
 for i in range(4):
     sample_image = sample_images[i]
-    sample_image_exp = np.expand_dims(sample_image, axis=0)  
-    class_index = np.argmax(model.predict(sample_image_exp))  
+    sample_image_exp = np.expand_dims(sample_image, axis=0)  # Expand to match model input shape
+    class_index = np.argmax(model.predict(sample_image_exp))  # Class index for Grad-CAM
 
+    
     heatmap = generate_gradcam_heatmap(model, sample_image_exp, class_index)
 
     sample_image = sample_image * 255.0
