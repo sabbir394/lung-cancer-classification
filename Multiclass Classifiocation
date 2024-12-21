@@ -141,7 +141,7 @@ x = feature_engg_data.values
 x = StandardScaler().fit_transform(x)
 
 # Apply SVD for dimensionality reduction
-svd = TruncatedSVD(n_components=50)
+svd = TruncatedSVD(n_components=100)
 x_reduced = svd.fit_transform(x)
 
 # Split the reduced features into Training & Testing Set
